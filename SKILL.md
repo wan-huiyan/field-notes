@@ -95,6 +95,39 @@ If no photos are dropped, skip the list and proceed directly.
 
 Use only the curated set in all subsequent steps.
 
+### Step 1c: Photo Correction
+
+After curation, run perspective correction and enhancement on all photos using Python with OpenCV. This step improves readability of slides and screens photographed from audience angles.
+
+**Requires:** `opencv-python-headless` and `numpy`. If not installed, run `pip3 install opencv-python-headless` first.
+
+**What it does for each photo:**
+
+1. **Screen detection** — Uses brightness thresholding (projected slides are bright in dark venues) followed by contour detection to find the largest rectangular region. Tries multiple threshold values (120, 100, 80, 140) and falls back to edge detection (Canny) if needed.
+
+2. **Perspective correction** — If a four-cornered screen region is found with a reasonable aspect ratio (between 1:1 and 3:1), applies a four-point perspective transform to produce a flat, rectangular crop of the slide content.
+
+3. **Enhancement** — Applies CLAHE (Contrast Limited Adaptive Histogram Equalization) on the L channel in LAB color space to improve contrast and readability, particularly for dim projected slides.
+
+**Decision logic:**
+- If a screen contour is found and the corrected output is at least 300px wide and 200px tall → **correct and enhance** (crop to slide, straighten, enhance)
+- If no screen is detected → **enhance only** (keep original framing, apply CLAHE)
+
+Save corrected photos to a `-Corrected` subfolder alongside the originals. Use the corrected versions in all subsequent steps (HTML output, base64 encoding).
+
+```python
+# Key functions (abbreviated — full implementation uses OpenCV):
+# find_screen(image) → finds largest bright rectangle via threshold + contour
+# four_point_transform(image, pts) → perspective warp to flat rectangle
+# enhance_slide(image) → CLAHE on LAB L-channel
+# correct_photo(filepath, out_path) → orchestrates detection → correction → enhancement
+```
+
+Report results to the user:
+```
+Photo correction: N corrected, M enhanced only, total T
+```
+
 ---
 
 ### Step 2: Analyse and Tag Photos
